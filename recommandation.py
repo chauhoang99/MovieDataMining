@@ -43,26 +43,26 @@ class Recommender(object):
         rated_movies['crew'] = rated_movies['crew'].apply(lambda x: [i.replace("'", '') for i in x])
         rated_movies['crew'] = rated_movies['crew'].apply(lambda x: [i.replace(".", '') for i in x])
 
-        keyword_data = pandas.read_csv(
-            "/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/keywords.csv"
+        genre_data = pandas.read_csv(
+            "/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/genreOfEachMovie.csv", delimiter=";"
         )
-        keyword_data['keywords'] = keyword_data['keywords'].apply(lambda x: self.inner_json_to_list(x))
-        keyword_data['keywords'] = keyword_data['keywords'].apply(lambda x: [i.replace(' ', '_') for i in x])
-        keyword_data['keywords'] = keyword_data['keywords'].apply(lambda x: [i.replace("'", '') for i in x])
-        keyword_data['keywords'] = keyword_data['keywords'].apply(lambda x: [i.replace(".", '') for i in x])
-        # keyword_data['id'] = keyword_data['id'].apply(lambda x: int(x))
+        genre_data['genres'] = genre_data['genres'].apply(lambda x: self.inner_json_to_list(x))
+        genre_data['genres'] = genre_data['genres'].apply(lambda x: [i.replace(' ', '_') for i in x])
+        genre_data['genres'] = genre_data['genres'].apply(lambda x: [i.replace("'", '') for i in x])
+        genre_data['genres'] = genre_data['genres'].apply(lambda x: [i.replace(".", '') for i in x])
+        genre_data['id'] = genre_data['id'].apply(lambda x: int(x))
 
         cast = rated_movies['cast'].to_list()
         crew = rated_movies['crew'].to_list()
-        keyword = keyword_data['keywords'].to_list()
+        genre = genre_data['genres'].to_list()
         features = list()
-        for names in cast + crew + keyword:
+        for names in cast + crew + genre:
             for i in names:
                 features.append(i)
         features = list(set(features))
 
         rated_movies = rated_movies.merge(
-            right=keyword_data,
+            right=genre_data,
             how='left',
             left_on='id',
             right_on='id',
