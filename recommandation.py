@@ -14,8 +14,8 @@ class Recommender(object):
         self.user_rating_data = user_rating_data[user_rating_data['rating'] >= 3]
         self.credit_data = credit_data
         self.number_of_recommendation = number_of_recommendations
-        self.query_relevant_movie_raw_data()
-        self.recommend_products()
+        # self.query_relevant_movie_raw_data()
+        # self.recommend_products()
 
     def inner_json_to_list(self, x):
         x = ast.literal_eval(x)
@@ -33,6 +33,7 @@ class Recommender(object):
             left_on='movieId',
             right_on='id',
         )
+        
         rated_movies['cast'] = rated_movies['cast'].apply(lambda x: self.inner_json_to_list(x))
         rated_movies['cast'] = rated_movies['cast'].apply(lambda x: [i.replace(' ', '_') for i in x])
         rated_movies['cast'] = rated_movies['cast'].apply(lambda x: [i.replace("'", '') for i in x])
@@ -44,7 +45,8 @@ class Recommender(object):
         rated_movies['crew'] = rated_movies['crew'].apply(lambda x: [i.replace(".", '') for i in x])
 
         keyword_data = pandas.read_csv(
-            "/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/keywords.csv"
+            # "/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/keywords.csv"
+            "/data-mining/data/keywords.csv"
         )
         keyword_data['keywords'] = keyword_data['keywords'].apply(lambda x: self.inner_json_to_list(x))
         keyword_data['keywords'] = keyword_data['keywords'].apply(lambda x: [i.replace(' ', '_') for i in x])
@@ -92,14 +94,15 @@ class Recommender(object):
             right_on='id',
         )
 
-        self.movie_data = self.movie_data[self.movie_data['cast'].apply(lambda x: any([i in features for i in x])) | self.movie_data['crew'].apply(lambda x: any([i in features for i in x]))]
+        self.movie_data = self.movie_data[self.movie_data['cast'].apply(lambda x: any([i in features for i in x])) | self.movie_data['crew'].apply(lambda x: any([i in features for i in x])) | self.movie_data['keywords'].apply(lambda x: any(i in features for i in x))]
+        
         for feature in features:
-            self.movie_data[feature] = self.movie_data.apply(lambda x: self.generate_binary_feature(feature, x), axis=1)
+            self.movie_data['f_' + feature] = self.movie_data[['cast', 'crew', 'keywords']].apply(lambda x: self.generate_binary_feature(feature, x), axis=1)
         del self.movie_data['cast']
         del self.movie_data['crew']
         del self.movie_data['keywords']
         for feature in features:
-            self.user_rating_data[feature] = self.user_rating_data.apply(lambda x: self.generate_binary_feature(feature, x), axis=1)
+            self.user_rating_data['f_' + feature] = self.user_rating_data.apply(lambda x: self.generate_binary_feature(feature, x), axis=1)
         del self.user_rating_data['cast']
         del self.user_rating_data['crew']
         del self.user_rating_data['keywords']
@@ -149,9 +152,14 @@ if __name__ == '__main__':
     user_id = input("User ID: ")
     number_of_recommendations = input("Number of recommendations: ")
     rating_data = pandas.read_csv(
-        "/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/ratings.csv")
+        # "/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/ratings.csv"
+        "/data-mining/data/ratings.csv"
+    )
     rating_data = rating_data[['userId', 'movieId', 'rating']]
     rating_data = rating_data[rating_data.userId == int(user_id)]
-    credit_data = pandas.read_csv("/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/credits.csv")
+    credit_data = pandas.read_csv(
+        # "/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/credits.csv"
+        "/data-mining/data/credits.csv"
+    )
 
     recommender = Recommender(rating_data, credit_data, int(number_of_recommendations))
