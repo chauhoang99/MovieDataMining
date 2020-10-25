@@ -182,7 +182,6 @@ class Recommender2(object):
         return result
 
     def query_relevant_movie_raw_data(self):
-        self.user_rating_data = self.user_rating_data[self.user_rating_data['rating'] == 5]
         credit_data = pandas.read_csv(
             "/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/credits.csv")
 
@@ -192,6 +191,7 @@ class Recommender2(object):
             left_on='movieId',
             right_on='id',
         )
+        self.user_rating_data['like'] = self.user_rating_data['rating'].apply(lambda x: 1 if x >= 4 else 0)
         self.user_rating_data['cast'] = self.user_rating_data['cast'].apply(lambda x: self.inner_json_to_list(x))
         self.user_rating_data['cast'] = self.user_rating_data['cast'].apply(lambda x: [i.replace(' ', '_') for i in x])
         self.user_rating_data['cast'] = self.user_rating_data['cast'].apply(lambda x: [i.replace("'", '') for i in x])
@@ -251,17 +251,64 @@ class Recommender2(object):
 
         # del self.user_rating_data['features']
         self.user_rating_data = pandas.concat([
-            self.user_rating_data[['userId', 'id', 'rating']],
+            self.user_rating_data[['userId', 'id', 'like']],
             self.user_rating_data['features'].str.get_dummies(sep=',')
         ],
             axis=1
         )
-        arff.dump(
-        '/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/RecomendationData/set4/user{}(3).arff'.format(self.user_id),
-        self.user_rating_data.values,
-        relation='movies',
-        names=self.user_rating_data.columns
+        # arff.dump(
+        # '/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/RecomendationData/set4/user{}(4).arff'.format(self.user_id),
+        # self.user_rating_data.values,
+        # relation='movies',
+        # names=self.user_rating_data.columns
+        # )
+
+        movie_data = credit_data[~credit_data['id'].isin(self.user_rating_data['id'])]
+        movie_data = movie_data.merge(
+            right=genre_data,
+            how='left',
+            left_on='id',
+            right_on='id',
         )
+
+        movie_data['like'] = '?'
+        movie_data['cast'] = movie_data['cast'].apply(lambda x: self.inner_json_to_list(x))
+        movie_data['cast'] = movie_data['cast'].apply(lambda x: [i.replace(' ', '_') for i in x])
+        movie_data['cast'] = movie_data['cast'].apply(lambda x: [i.replace("'", '') for i in x])
+        movie_data['cast'] = movie_data['cast'].apply(lambda x: [i.replace(".", '') for i in x])
+        movie_data['cast'] = movie_data['cast'].apply(lambda x: self.remove_unnecessary_feature(x, self.user_rating_data.columns))
+
+        movie_data['crew'] = movie_data['crew'].apply(lambda x: self.inner_json_to_list(x))
+        movie_data['crew'] = movie_data['crew'].apply(lambda x: [i.replace(' ', '_') for i in x])
+        movie_data['crew'] = movie_data['crew'].apply(lambda x: [i.replace("'", '') for i in x])
+        movie_data['crew'] = movie_data['crew'].apply(lambda x: [i.replace(".", '') for i in x])
+        movie_data['crew'] = movie_data['crew'].apply(lambda x: self.remove_unnecessary_feature(x, self.user_rating_data.columns))
+
+        movie_data['features'] = movie_data[['cast', 'crew', 'genres']].apply(lambda x: x['cast'] + x['crew'] + x['genres'], axis=1)
+
+        del movie_data['cast']
+        del movie_data['crew']
+        del movie_data['genres']
+        movie_data['features'] = movie_data['features'].apply(lambda x: ','.join(x))
+        movie_data = pandas.concat([
+            movie_data[['id', 'like']],
+            movie_data['features'].str.get_dummies(sep=',')
+        ],
+            axis=1
+        )
+        arff.dump(
+        '/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/RecomendationData/set4/moviesNotRatedUser{}.arff'.format(self.user_id),
+        movie_data.values,
+        relation='unrated_movies',
+        names=movie_data.columns
+        )
+
+    def remove_unnecessary_feature(self, x, features):
+        new_list =list()
+        for i in x:
+            if i in features:
+                new_list.append(i)
+        return new_list
 
     def generate_binary_feature(self, value, row):
         if value in row['features']:

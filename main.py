@@ -27,9 +27,6 @@ def create_final_file():
     df = pandas.DataFrame(newData)
     # Drama is an umbrella genre that cover many more specific genres in it.
     df = df[df.genre != 'Drama']
-
-    # df = df.head(1000)
-    df = df[-1000:]
     df['keywords'] = df['keywords'].apply(lambda x: ','.join(x))
     # df2 = pandas.concat([df[['itemId', 'movieId', 'genre']], pandas.get_dummies(df['keywords'].apply(pandas.Series), prefix='keyword')], axis=1)
     df2 = pandas.concat([df[['itemId', 'movieId', 'genre']], df['keywords'].str.get_dummies(sep=',')], axis=1)
