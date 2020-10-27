@@ -2,6 +2,7 @@ from scipy import spatial
 import pandas
 import ast
 import arff
+import numpy
 
 
 class Recommender(object):
@@ -289,19 +290,22 @@ class Recommender2(object):
         del movie_data['cast']
         del movie_data['crew']
         del movie_data['genres']
-        movie_data['features'] = movie_data['features'].apply(lambda x: ','.join(x))
-        movie_data = pandas.concat([
-            movie_data[['id', 'like']],
-            movie_data['features'].str.get_dummies(sep=',')
-        ],
-            axis=1
-        )
-        arff.dump(
-        '/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/RecomendationData/set4/moviesNotRatedUser{}.arff'.format(self.user_id),
-        movie_data.values,
-        relation='unrated_movies',
-        names=movie_data.columns
-        )
+        i = 0
+        for df in numpy.array_split(movie_data, int(round(movie_data.shape[0] / 2000))):
+            i += 1
+            df['features'] = df['features'].apply(lambda x: ','.join(x))
+            df = pandas.concat([
+                df[['id', 'like']],
+                df['features'].str.get_dummies(sep=',')
+            ],
+                axis=1
+            )
+            arff.dump(
+            '/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/RecomendationData/set4/moviesNotRatedUser{0}({1}).arff'.format(self.user_id, i),
+            df.values,
+            relation='unrated_movies',
+            names=df.columns
+            )
 
     def remove_unnecessary_feature(self, x, features):
         new_list =list()
