@@ -110,7 +110,9 @@ class Recommender(object):
         del self.movie_data['genres']
 
         recommendation = None
-        for df in numpy.array_split(self.movie_data, int(round(self.movie_data.shape[0] / 5000))):
+        print('Prepare to enter the loop')
+        for df in numpy.array_split(self.movie_data, int(round(self.movie_data.shape[0] / 2000))):
+            print('in the loop...')
 
             df = pandas.concat([
                 self.movie_data[['id']],
