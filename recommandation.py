@@ -123,6 +123,7 @@ class Recommender(object):
                 recommendation = batch_rec
             else:
                 recommendation = recommendation.append(batch_rec)
+            del df
         recommendation.sort_values('cosine_distance')
         print(recommendation.head(3))
 
