@@ -44,37 +44,38 @@ class Recommender(object):
         rated_movies['crew'] = rated_movies['crew'].apply(lambda x: [i.replace("'", '') for i in x])
         rated_movies['crew'] = rated_movies['crew'].apply(lambda x: [i.replace(".", '') for i in x])
 
-        keyword_data = pandas.read_csv(
-            # "/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/keywords.csv"
-            "/data-mining/data/keywords.csv"
+        genre_data = pandas.read_csv(
+            "/data-mining/data/genreOfMovies.csv",
+            delimiter=";"
         )
-        keyword_data['keywords'] = keyword_data['keywords'].apply(lambda x: self.inner_json_to_list(x))
-        keyword_data['keywords'] = keyword_data['keywords'].apply(lambda x: [i.replace(' ', '_') for i in x])
-        keyword_data['keywords'] = keyword_data['keywords'].apply(lambda x: [i.replace("'", '') for i in x])
-        keyword_data['keywords'] = keyword_data['keywords'].apply(lambda x: [i.replace(".", '') for i in x])
-        # keyword_data['id'] = keyword_data['id'].apply(lambda x: int(x))
-
-        cast = rated_movies['cast'].to_list()
-        crew = rated_movies['crew'].to_list()
-        keyword = keyword_data['keywords'].to_list()
-        features = list()
-        for names in cast + crew + keyword:
-            for i in names:
-                features.append(i)
-        features = list(set(features))
-
+        genre_data['genres'] = genre_data['genres'].apply(lambda x: self.inner_json_to_list(x))
+        genre_data['genres'] = genre_data['genres'].apply(lambda x: [i.replace(' ', '_') for i in x])
+        genre_data['genres'] = genre_data['genres'].apply(lambda x: [i.replace("'", '') for i in x])
+        genre_data['genres'] = genre_data['genres'].apply(lambda x: [i.replace(".", '') for i in x])
+        genre_data['id'] = genre_data['id'].apply(lambda x: int(x))
         rated_movies = rated_movies.merge(
-            right=keyword_data,
+            right=genre_data,
             how='left',
             left_on='id',
             right_on='id',
         )
         self.user_rating_data = rated_movies
+        self.user_rating_data['features'] = self.user_rating_data[['cast', 'crew', 'genres']].apply(lambda x: x['cast'] + x['crew'] + x['genres'], axis=1)
+        self.user_rating_data = self.user_rating_data.sort_values('rating', ascending=False)
+        self.user_rating_data.reset_index(inplace=True)
+        del self.user_rating_data['cast']
+        del self.user_rating_data['crew']
+        del self.user_rating_data['genres']
+        self.user_rating_data['features'] = self.user_rating_data['features'].apply(lambda x: ','.join(x))
+        self.user_rating_data = pandas.concat([
+            self.user_rating_data[['userId', 'id', 'rating']],
+            self.user_rating_data['features'].str.get_dummies(sep=',')
+        ],
+            axis=1
+        )
 
         self.movie_data = self.credit_data[~self.credit_data['id'].isin(self.user_rating_data['movieId'])]
         self.credit_data = None
-        self.user_rating_data = self.user_rating_data.sort_values('rating', ascending=False)
-        self.user_rating_data.reset_index(inplace=True)
         del self.user_rating_data['index']
         del self.user_rating_data['movieId']
 
@@ -88,26 +89,22 @@ class Recommender(object):
         self.movie_data['crew'] = self.movie_data['crew'].apply(lambda x: [i.replace("'", '') for i in x])
         self.movie_data['crew'] = self.movie_data['crew'].apply(lambda x: [i.replace(".", '') for i in x])
         self.movie_data = self.movie_data.merge(
-            right=keyword_data,
+            right=genre_data,
             how='left',
             left_on='id',
             right_on='id',
         )
+        self.movie_data['features'] = self.movie_data[['cast', 'crew', 'genres']].apply(lambda x: x['cast'] + x['crew'] + x['genres'], axis=1)
 
-        self.movie_data = self.movie_data[self.movie_data['cast'].apply(lambda x: any([i in features for i in x])) | self.movie_data['crew'].apply(lambda x: any([i in features for i in x])) | self.movie_data['keywords'].apply(lambda x: any(i in features for i in x))]
-        
-        for feature in features:
-            self.movie_data['f_' + feature] = self.movie_data[['cast', 'crew', 'keywords']].apply(lambda x: self.generate_binary_feature(feature, x), axis=1)
         del self.movie_data['cast']
         del self.movie_data['crew']
-        del self.movie_data['keywords']
-        for feature in features:
-            self.user_rating_data['f_' + feature] = self.user_rating_data.apply(lambda x: self.generate_binary_feature(feature, x), axis=1)
-        del self.user_rating_data['cast']
-        del self.user_rating_data['crew']
-        del self.user_rating_data['keywords']
-
-        self.features = features
+        del self.movie_data['genres']
+        self.movie_data = pandas.concat([
+            self.movie_data[['id']],
+            self.movie_data['features'].str.get_dummies(sep=',')
+        ],
+            axis=1
+        )
 
     def generate_binary_feature(self, value, row):
         if value in row['cast'] + row['crew'] + row['keywords']:
@@ -139,7 +136,7 @@ class Recommender(object):
         movie_data = movie_data.reindex(sorted(movie_data.columns), axis=1)
         movie_data['cosine_distance'] = movie_data[self.features].apply(lambda x: self.cosine_distance(x, top1), axis=1)
         movie_data = movie_data.sort_values('cosine_distance')
-        print(movie_data.head(3))
+        print(movie_data.head(3)[['id', 'cosine_distance']])
         # movie_data.reset_index(inplace=True)
         # del movie_data['index']
 
