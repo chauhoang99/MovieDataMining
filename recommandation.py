@@ -74,7 +74,7 @@ class Recommender(object):
             axis=1
         )
 
-        self.movie_data = self.credit_data[~self.credit_data['id'].isin(self.user_rating_data['movieId'])]
+        self.movie_data = self.credit_data[~self.credit_data['id'].isin(self.user_rating_data['id'])]
         self.credit_data = None
         del self.user_rating_data['index']
         del self.user_rating_data['movieId']
