@@ -1,6 +1,7 @@
 from scipy import spatial
 import pandas
 import ast
+import numpy
 
 
 class Recommender(object):
@@ -107,13 +108,23 @@ class Recommender(object):
         del self.movie_data['cast']
         del self.movie_data['crew']
         del self.movie_data['genres']
-        print('still here')
-        self.movie_data = pandas.concat([
-            self.movie_data[['id']],
-            self.movie_data['features'].str.get_dummies(sep=',')
-        ],
-            axis=1
-        )
+
+        recommendation = None
+        for df in numpy.array_split(self.movie_data, int(round(self.movie_data.shape[0] / 5000))):
+
+            df = pandas.concat([
+                self.movie_data[['id']],
+                self.movie_data['features'].str.get_dummies(sep=',')
+            ],
+                axis=1
+            )
+            batch_rec = self.recommend_products(df)
+            if not recommendation:
+                recommendation = batch_rec
+            else:
+                recommendation = recommendation.append(batch_rec)
+        recommendation.sort_values('cosine_distance')
+        print(recommendation.head(3))
 
     def generate_binary_feature(self, value, row):
         if value in row['cast'] + row['crew'] + row['keywords']:
@@ -121,7 +132,7 @@ class Recommender(object):
         else:
             return 0
 
-    def recommend_products(self):
+    def recommend_products(self, movie_data):
         print('Top 3 rated movies by user are: '.format(self.number_of_recommendation))
         top1 = self.user_rating_data.iloc[[0]].copy()
         top1 = top1.reindex(sorted(top1.columns), axis=1)
@@ -141,13 +152,20 @@ class Recommender(object):
         del top3['userId']
         del top3['rating']
         del top3['id']
-        movie_data = self.movie_data.copy()
         movie_data = movie_data.reindex(sorted(movie_data.columns), axis=1)
         movie_data['cosine_distance'] = movie_data[self.features].apply(lambda x: self.cosine_distance(x, top1), axis=1)
         movie_data = movie_data.sort_values('cosine_distance')
-        print(movie_data.head(3)[['id', 'cosine_distance']])
-        # movie_data.reset_index(inplace=True)
-        # del movie_data['index']
+        result = movie_data.head(3)[['id', 'cosine_distance']]
+
+        movie_data['cosine_distance'] = movie_data[self.features].apply(lambda x: self.cosine_distance(x, top2), axis=1)
+        movie_data = movie_data.sort_values('cosine_distance')
+        result = result.append(movie_data.head(3)[['id', 'cosine_distance']])
+
+        movie_data['cosine_distance'] = movie_data[self.features].apply(lambda x: self.cosine_distance(x, top3), axis=1)
+        movie_data = movie_data.sort_values('cosine_distance')
+        result = result.append(movie_data.head(3)[['id', 'cosine_distance']])
+        result = result.sort_values('cosine_distance')
+        return result.head(3)[['id', 'cosine_distance']]
 
     def cosine_distance(self, x, top):
         x = x.values.tolist()
