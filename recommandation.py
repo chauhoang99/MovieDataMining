@@ -57,6 +57,7 @@ class Recommender(object):
 
         genre_data = pandas.read_csv(
             "/data-mining/data/genreOfMovies.csv",
+            # "/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/genreOfMovies.csv",
             delimiter=";"
         )
         genre_data['genres'] = genre_data['genres'].apply(lambda x: self.inner_json_to_list(x))
@@ -104,35 +105,38 @@ class Recommender(object):
             right_on='id',
         )
         self.movie_data['features'] = self.movie_data[['cast', 'crew', 'genres']].apply(lambda x: x['cast'] + x['crew'] + x['genres'], axis=1)
-        self.movie_data['features'] = self.movie_data['features'].apply(lambda x: ','.join(x))
+        # self.movie_data['features'] = self.movie_data['features'].apply(lambda x: ','.join(x))
         del self.movie_data['cast']
         del self.movie_data['crew']
         del self.movie_data['genres']
 
-        recommendation = None
-        print(self.movie_data.head())
-        print('Prepare to enter the loop')
-        for df in numpy.array_split(self.movie_data, int(round(self.movie_data.shape[0] / 500))):
-            print('in the loop...')
+        self.features = list(self.user_rating_data.columns)
+        for feature in self.features:
+            self.movie_data['f_' + feature] = self.movie_data['features'].apply(
+                lambda x: self.generate_binary_feature(feature, x), axis=1)
 
-            df = pandas.concat([
-                self.movie_data['id'],
-                self.movie_data['features'].str.get_dummies(sep=',')
-            ],
-                axis=1
-            )
-            print("still in the old loop")
-            batch_rec = self.recommend_products(df)
-            if not recommendation:
-                recommendation = batch_rec
-            else:
-                recommendation = recommendation.append(batch_rec)
-            del df
-        recommendation.sort_values('cosine_distance')
-        print(recommendation.head(3))
+        # recommendation = None
+        # for df in numpy.array_split(self.movie_data, int(round(self.movie_data.shape[0] / 100))):
+        #     print('in the loop...')
+        #
+        #     df = pandas.concat([
+        #         self.movie_data['id'],
+        #         self.movie_data['features'].str.get_dummies(sep=',')
+        #     ],
+        #         axis=1
+        #     )
+        #     print("still in the old loop")
+        #     batch_rec = self.recommend_products(df)
+        #     if not recommendation:
+        #         recommendation = batch_rec
+        #     else:
+        #         recommendation = recommendation.append(batch_rec)
+        #     del df
+        # recommendation.sort_values('cosine_distance')
+        # print(recommendation.head(3))
 
     def generate_binary_feature(self, value, row):
-        if value in row['cast'] + row['crew'] + row['keywords']:
+        if value in row['features']:
             return 1
         else:
             return 0
@@ -140,23 +144,24 @@ class Recommender(object):
     def recommend_products(self, movie_data):
         print('Top 3 rated movies by user are: ')
         top1 = self.user_rating_data.iloc[[0]].copy()
-        top1 = top1.reindex(sorted(top1.columns), axis=1)
         print(top1['id'])
         del top1['userId']
         del top1['rating']
         del top1['id']
+        top1 = top1.reindex(sorted(top1.columns), axis=1)
         top2 = self.user_rating_data.iloc[[1]].copy()
-        top2 = top2.reindex(sorted(top2.columns), axis=1)
         print(top2['id'])
         del top2['userId']
         del top2['rating']
         del top2['id']
+        top2 = top2.reindex(sorted(top2.columns), axis=1)
         top3 = self.user_rating_data.iloc[[2]].copy()
-        top3 = top3.reindex(sorted(top3.columns), axis=1)
         print(top3['id'])
         del top3['userId']
         del top3['rating']
         del top3['id']
+        top3 = top3.reindex(sorted(top3.columns), axis=1)
+
         movie_data = movie_data.reindex(sorted(movie_data.columns), axis=1)
         movie_data['cosine_distance'] = movie_data[self.features].apply(lambda x: self.cosine_distance(x, top1), axis=1)
         movie_data = movie_data.sort_values('cosine_distance')
