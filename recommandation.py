@@ -217,15 +217,6 @@ class Recommender2(object):
 
         genre_data['id'] = genre_data['id'].apply(lambda x: int(x))
 
-        # cast = rated_movies['cast'].to_list()
-        # crew = rated_movies['crew'].to_list()
-        # genre = genre_data['genres'].to_list()
-        # features = list()
-        # for names in cast + crew + genre:
-        #     for i in names:
-        #         features.append(i)
-        # features = list(set(features))
-
         self.user_rating_data = self.user_rating_data.merge(
             right=genre_data,
             how='left',
@@ -240,17 +231,6 @@ class Recommender2(object):
         del self.user_rating_data['genres']
         self.user_rating_data['features'] = self.user_rating_data['features'].apply(lambda x: ','.join(x))
 
-        # self.user_rating_data = self.user_rating_data.sample(frac=0.2).reset_index(drop=True)
-        # print(self.user_rating_data.count() + 1)
-        #
-        # features = list()
-        # for x in self.user_rating_data['features'].to_list():
-        #     for i in x:
-        #         features.append(i)
-        # for feature in features:
-        #     self.user_rating_data[feature] = self.user_rating_data.apply(lambda x: self.generate_binary_feature(feature, x), axis=1)
-
-        # del self.user_rating_data['features']
         self.user_rating_data = pandas.concat([
             self.user_rating_data[['userId', 'id', 'like']],
             self.user_rating_data['features'].str.get_dummies(sep=',')
