@@ -14,8 +14,8 @@ class Recommender(object):
         self.user_rating_data = user_rating_data[user_rating_data['rating'] >= 3]
         self.credit_data = credit_data
         self.number_of_recommendation = number_of_recommendations
-        # self.query_relevant_movie_raw_data()
-        # self.recommend_products()
+        self.query_relevant_movie_raw_data()
+        self.recommend_products()
 
     def inner_json_to_list(self, x):
         x = ast.literal_eval(x)
