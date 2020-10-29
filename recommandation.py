@@ -107,6 +107,7 @@ class Recommender(object):
         del self.movie_data['cast']
         del self.movie_data['crew']
         del self.movie_data['genres']
+        print('still here')
         self.movie_data = pandas.concat([
             self.movie_data[['id']],
             self.movie_data['features'].str.get_dummies(sep=',')
