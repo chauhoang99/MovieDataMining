@@ -104,22 +104,24 @@ class Recommender(object):
             right_on='id',
         )
         self.movie_data['features'] = self.movie_data[['cast', 'crew', 'genres']].apply(lambda x: x['cast'] + x['crew'] + x['genres'], axis=1)
-
+        self.movie_data['features'] = self.movie_data['features'].apply(lambda x: ','.join(x))
         del self.movie_data['cast']
         del self.movie_data['crew']
         del self.movie_data['genres']
 
         recommendation = None
+        print(self.movie_data.head())
         print('Prepare to enter the loop')
-        for df in numpy.array_split(self.movie_data, int(round(self.movie_data.shape[0] / 2000))):
+        for df in numpy.array_split(self.movie_data, int(round(self.movie_data.shape[0] / 500))):
             print('in the loop...')
 
             df = pandas.concat([
-                self.movie_data[['id']],
+                self.movie_data['id'],
                 self.movie_data['features'].str.get_dummies(sep=',')
             ],
                 axis=1
             )
+            print("still in the old loop")
             batch_rec = self.recommend_products(df)
             if not recommendation:
                 recommendation = batch_rec
@@ -136,7 +138,7 @@ class Recommender(object):
             return 0
 
     def recommend_products(self, movie_data):
-        print('Top 3 rated movies by user are: '.format(self.number_of_recommendation))
+        print('Top 3 rated movies by user are: ')
         top1 = self.user_rating_data.iloc[[0]].copy()
         top1 = top1.reindex(sorted(top1.columns), axis=1)
         print(top1['id'])
