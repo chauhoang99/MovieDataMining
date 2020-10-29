@@ -76,8 +76,6 @@ class Recommender(object):
 
         self.movie_data = self.credit_data[~self.credit_data['id'].isin(self.user_rating_data['id'])]
         self.credit_data = None
-        del self.user_rating_data['index']
-        del self.user_rating_data['movieId']
 
         self.movie_data['cast'] = self.movie_data['cast'].apply(lambda x: self.inner_json_to_list(x))
         self.movie_data['cast'] = self.movie_data['cast'].apply(lambda x: [i.replace(' ', '_') for i in x])
