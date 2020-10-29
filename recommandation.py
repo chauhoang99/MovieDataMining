@@ -10,9 +10,19 @@ class Recommender(object):
     rated_movies = None
     features = None
 
-    def __init__(self, user_rating_data, credit_data, number_of_recommendations):
-        self.user_rating_data = user_rating_data[user_rating_data['rating'] >= 3]
-        self.credit_data = credit_data
+    def __init__(self, user_id, number_of_recommendations):
+        rating_data = pandas.read_csv(
+            # "/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/ratings.csv"
+            "/data-mining/data/ratings.csv"
+        )
+        rating_data = rating_data[['userId', 'movieId', 'rating']]
+        rating_data = rating_data[rating_data.userId == int(user_id)]
+        self.credit_data = pandas.read_csv(
+            # "/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/credits.csv"
+            "/data-mining/data/credits.csv"
+        )
+        self.user_rating_data = rating_data[rating_data['rating'] >= 3]
+        del rating_data
         self.number_of_recommendation = number_of_recommendations
         self.query_relevant_movie_raw_data()
         self.recommend_products()
@@ -146,15 +156,4 @@ class Recommender(object):
 if __name__ == '__main__':
     user_id = input("User ID: ")
     number_of_recommendations = input("Number of recommendations: ")
-    rating_data = pandas.read_csv(
-        # "/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/ratings.csv"
-        "/data-mining/data/ratings.csv"
-    )
-    rating_data = rating_data[['userId', 'movieId', 'rating']]
-    rating_data = rating_data[rating_data.userId == int(user_id)]
-    credit_data = pandas.read_csv(
-        # "/home/hoangchau/study/data mining and text analysis/summative/Movie Data/Movie Data/credits.csv"
-        "/data-mining/data/credits.csv"
-    )
-
-    recommender = Recommender(rating_data, credit_data, int(number_of_recommendations))
+    recommender = Recommender(user_id, int(number_of_recommendations))
